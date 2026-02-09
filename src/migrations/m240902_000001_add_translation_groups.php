@@ -16,13 +16,6 @@ class m240902_000001_add_translation_groups extends Migration
             'uid' => $this->uid(),
         ]);
 
-        $this->insert('{{%pragmatic_translation_groups}}', [
-            'name' => 'site',
-            'dateCreated' => $this->db->getCurrentUTCDateTimeSQL(),
-            'dateUpdated' => $this->db->getCurrentUTCDateTimeSQL(),
-            'uid' => $this->db->generateUuid(),
-        ]);
-
         return true;
     }
 
