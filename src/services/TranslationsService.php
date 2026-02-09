@@ -42,7 +42,7 @@ class TranslationsService extends Component
         return $value;
     }
 
-    public function getAllTranslations(?string $search = null, ?string $group = null): array
+    public function getAllTranslations(?string $search = null, ?string $group = null, ?int $limit = null, ?int $offset = null): array
     {
         $query = (new Query())
             ->select([
@@ -66,6 +66,13 @@ class TranslationsService extends Component
             ]);
         }
 
+        if ($limit !== null) {
+            $query->limit($limit);
+        }
+        if ($offset !== null) {
+            $query->offset($offset);
+        }
+
         $rows = $query
             ->orderBy(['t.key' => SORT_ASC])
             ->all();
@@ -87,6 +94,25 @@ class TranslationsService extends Component
         }
 
         return array_values($translations);
+    }
+
+    public function countTranslations(?string $search = null, ?string $group = null): int
+    {
+        $query = (new Query())
+            ->from(['t' => TranslationRecord::tableName()]);
+
+        if ($group !== null && $group !== '') {
+            $query->andWhere(['t.group' => $group]);
+        }
+
+        if ($search !== null && $search !== '') {
+            $query->andWhere([
+                'or',
+                ['like', 't.key', $search],
+            ]);
+        }
+
+        return (int)$query->count();
     }
 
     public function saveTranslations(array $items): void

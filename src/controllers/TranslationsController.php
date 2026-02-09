@@ -32,9 +32,21 @@ class TranslationsController extends Controller
         $request = Craft::$app->getRequest();
         $search = (string)$request->getParam('q', '');
         $group = (string)$request->getParam('group', 'site');
+        $page = max(1, (int)$request->getParam('page', 1));
+        $perPage = (int)$request->getParam('perPage', 50);
+        if (!in_array($perPage, [50, 100, 250], true)) {
+            $perPage = 50;
+        }
+        $offset = ($page - 1) * $perPage;
 
-        $translations = PragmaticTranslations::$plugin->translations->getAllTranslations($search, $group);
-        $groups = PragmaticTranslations::$plugin->translations->getGroups();
+        $service = PragmaticTranslations::$plugin->translations;
+        $total = $service->countTranslations($search, $group);
+        $translations = $service->getAllTranslations($search, $group, $perPage, $offset);
+        $groups = $service->getGroups();
+        $totalPages = max(1, (int)ceil($total / $perPage));
+        if ($page > $totalPages) {
+            $page = $totalPages;
+        }
 
         return $this->renderTemplate('pragmatic-translations/translations/index', [
             'sites' => $sites,
@@ -43,6 +55,10 @@ class TranslationsController extends Controller
             'groups' => $groups,
             'search' => $search,
             'group' => $group,
+            'page' => $page,
+            'perPage' => $perPage,
+            'totalPages' => $totalPages,
+            'total' => $total,
         ]);
     }
 
