@@ -35,7 +35,7 @@ class TranslationsController extends Controller
         $translations = PragmaticTranslations::$plugin->translations->getAllTranslations($search, $group);
         $groups = PragmaticTranslations::$plugin->translations->getGroups();
 
-        return $this->renderTemplate('translations/index', [
+        return $this->renderTemplate('pragmatic-translations/translations/index', [
             'sites' => $sites,
             'translations' => $translations,
             'groups' => $groups,

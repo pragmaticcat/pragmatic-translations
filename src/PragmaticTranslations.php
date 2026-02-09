@@ -16,7 +16,7 @@ use yii\base\Event;
 class PragmaticTranslations extends Plugin
 {
     public bool $hasCpSection = true;
-    public string $templateRoot = __DIR__ . '/templates';
+    public string $templateRoot = '';
     public string $schemaVersion = '1.0.0';
 
     public static PragmaticTranslations $plugin;
@@ -26,6 +26,7 @@ class PragmaticTranslations extends Plugin
         parent::init();
 
         self::$plugin = $this;
+        $this->templateRoot = $this->getBasePath() . DIRECTORY_SEPARATOR . 'templates';
 
         $this->setComponents([
             'translations' => TranslationsService::class,
