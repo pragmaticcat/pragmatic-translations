@@ -175,10 +175,10 @@ class TranslationsController extends Controller
             $zip->extractTo($tmpDir);
             $zip->close();
 
-            $files = glob($tmpDir . '/translations/*.php');
+            $files = glob($tmpDir . '/translations/*/*.php');
             foreach ($files as $path) {
-                $filename = basename($path, '.php');
-                $language = $filename;
+                $language = basename(dirname($path));
+                $group = basename($path, '.php');
                 $map = include $path;
                 if (!is_array($map)) {
                     continue;
@@ -186,6 +186,7 @@ class TranslationsController extends Controller
                 foreach ($map as $key => $value) {
                     $items[$key]['key'] = (string)$key;
                     $items[$key]['values'][$language] = (string)$value;
+                    $items[$key]['group'] = $group;
                     $items[$key]['preserveMeta'] = true;
                 }
             }
@@ -249,11 +250,24 @@ class TranslationsController extends Controller
             throw new \RuntimeException('Unable to create PHP export.');
         }
 
-        foreach ($sites as $site) {
-            $translations = $service->getTranslationsBySiteId($site->id);
-            $export = "<?php\n\nreturn " . var_export($translations, true) . ";\n";
-            $filename = 'translations/' . $site->language . '.php';
-            $zip->addFromString($filename, $export);
+        $languages = $this->getLanguages($sites);
+        $groups = $service->getGroups();
+        $allTranslations = $service->getAllTranslations();
+
+        foreach ($languages as $language) {
+            foreach ($groups as $group) {
+                $map = [];
+                foreach ($allTranslations as $translation) {
+                    if (($translation['group'] ?? 'site') !== $group) {
+                        continue;
+                    }
+                    $map[$translation['key']] = $this->getValueForLanguage($translation, $sites, $language);
+                }
+
+                $export = "<?php\n\nreturn " . var_export($map, true) . ";\n";
+                $filename = 'translations/' . $language . '/' . $group . '.php';
+                $zip->addFromString($filename, $export);
+            }
         }
 
         $zip->close();

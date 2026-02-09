@@ -61,7 +61,7 @@ key,group,<language1>,<language2>,...
 ### PHP (ZIP)
 The export produces a ZIP with files in:
 ```
-translations/<locale>.php
+translations/<locale>/<group>.php
 ```
 Each file returns a key/value array compatible with Craft i18n conventions.
 
