@@ -74,8 +74,10 @@
         <label for="delete-group">Delete group</label>
         <div class="select">
           <select id="delete-group" name="name">
-            {% for groupName in groups if groupName != 'site' %}
-              <option value="{{ groupName }}">{{ groupName }}</option>
+            {% for groupName in groups %}
+              {% if groupName != 'site' %}
+                <option value="{{ groupName }}">{{ groupName }}</option>
+              {% endif %}
             {% endfor %}
           </select>
         </div>
