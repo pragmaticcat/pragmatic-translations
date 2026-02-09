@@ -156,6 +156,19 @@
     menuEl.appendChild(li);
   }
 
+  function findMenuForButton(btn, fieldEl) {
+    const menuId = btn.getAttribute('aria-controls');
+    if (menuId) {
+      const byId = document.getElementById(menuId);
+      if (byId) return byId;
+    }
+
+    const localMenu = fieldEl.querySelector('.menu');
+    if (localMenu) return localMenu;
+
+    return document.querySelector('.menu.menu--active, .menu[aria-hidden=\"false\"]');
+  }
+
   document.addEventListener('click', function(ev) {
     const btn = ev.target.closest('.menubtn');
     if (!btn) return;
@@ -163,9 +176,10 @@
     const fieldEl = btn.closest('.field');
     if (!fieldEl || !isEligibleField(fieldEl)) return;
 
-    const menuEl = fieldEl.querySelector('.menu');
-    if (!menuEl) return;
-
-    ensureMenuItem(fieldEl, menuEl);
+    setTimeout(function() {
+      const menuEl = findMenuForButton(btn, fieldEl);
+      if (!menuEl) return;
+      ensureMenuItem(fieldEl, menuEl);
+    }, 0);
   });
 })();
