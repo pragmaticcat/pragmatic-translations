@@ -5,6 +5,7 @@ namespace pragmatic\translations\controllers;
 use Craft;
 use craft\web\Controller;
 use pragmatic\translations\PragmaticTranslations;
+use craft\web\View;
 use yii\web\BadRequestHttpException;
 use yii\web\Response;
 
@@ -35,7 +36,7 @@ class TranslationsController extends Controller
         $translations = PragmaticTranslations::$plugin->translations->getAllTranslations($search, $group);
         $groups = PragmaticTranslations::$plugin->translations->getGroups();
 
-        return $this->renderTemplate('pragmatic-translations/translations/index', [
+        return $this->renderPluginTemplate('translations/index', [
             'sites' => $sites,
             'translations' => $translations,
             'groups' => $groups,
@@ -269,5 +270,22 @@ class TranslationsController extends Controller
         return Craft::$app->getResponse()->sendFile($zipPath, 'translations-php.zip', [
             'mimeType' => 'application/zip',
         ]);
+    }
+
+    private function renderPluginTemplate(string $template, array $variables): Response
+    {
+        $view = Craft::$app->getView();
+        $oldMode = $view->getTemplateMode();
+        $oldPath = $view->getTemplatesPath();
+
+        $view->setTemplateMode(View::TEMPLATE_MODE_CP);
+        $view->setTemplatesPath(PragmaticTranslations::$plugin->getBasePath() . DIRECTORY_SEPARATOR . 'templates');
+
+        $html = $view->renderTemplate($template, $variables);
+
+        $view->setTemplatesPath($oldPath);
+        $view->setTemplateMode($oldMode);
+
+        return $this->asRaw($html);
     }
 }
