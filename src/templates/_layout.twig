@@ -2,18 +2,30 @@
 
 {% set title = title ?? "Translations" %}
 {% set selectedSubnavItem = "translations" %}
+{% set selectedItem = craft.app.request.getSegment(2) %}
+
+{% set navItems = {
+    'translations-heading': { heading: "Translations" },
+    'entries': { title: "Entradas" },
+    'import-export': { title: "Importar/exportar" },
+    'groups': { title: "Grupos" },
+    'options': { title: "Opciones" },
+} %}
 
 {% block sidebar %}
-  <nav aria-label="Pragmatic Translations">
-    <ul>
-      <li><a class="{{ activeSection == 'entries' ? 'sel' : '' }}" href="{{ url('pragmatic-translations/entries') }}">Entradas</a></li>
-      <li><a class="{{ activeSection == 'import-export' ? 'sel' : '' }}" href="{{ url('pragmatic-translations/import-export') }}">Importar/exportar</a></li>
-      <li><a class="{{ activeSection == 'groups' ? 'sel' : '' }}" href="{{ url('pragmatic-translations/groups') }}">Grupos</a></li>
-      <li><a class="{{ activeSection == 'options' ? 'sel' : '' }}" href="{{ url('pragmatic-translations/options') }}">Opciones</a></li>
-    </ul>
-  </nav>
+    <nav>
+        <ul>
+            {% for id, item in navItems %}
+                {% if item.heading is defined %}
+                    <li class="heading"><span>{{ item.heading }}</span></li>
+                {% else %}
+                    <li><a href="{{ url('pragmatic-translations/' ~ id) }}"{% if id == selectedItem %} class="sel"{% endif %}>{{ item.title }}</a></li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </nav>
 {% endblock %}
 
 {% block content %}
-  {% block main %}{% endblock %}
+    {% block main %}{% endblock %}
 {% endblock %}
