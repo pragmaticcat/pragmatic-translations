@@ -66,38 +66,6 @@
     </ul>
   </div>
 
-  <div class="flex" style="margin-top: 12px; gap: 16px; align-items: flex-end;">
-    <form method="post" accept-charset="UTF-8" class="flex" style="gap: 8px; align-items: flex-end;">
-      {{ csrfInput() }}
-      {{ actionInput('pragmatic-translations/translations/add-group') }}
-      {{ redirectInput('pragmatic-translations', { group: group, q: search, perPage: perPage }) }}
-      <div>
-        <label for="new-group">New group</label>
-        <input class="text" id="new-group" name="name" placeholder="e.g. profesionales">
-      </div>
-      <button class="btn" type="submit">Add</button>
-    </form>
-
-    <form method="post" accept-charset="UTF-8" class="flex" style="gap: 8px; align-items: flex-end;">
-      {{ csrfInput() }}
-      {{ actionInput('pragmatic-translations/translations/delete-group') }}
-      {{ redirectInput('pragmatic-translations', { group: 'site', q: search, perPage: perPage }) }}
-      <div>
-        <label for="delete-group">Delete group</label>
-        <div class="select">
-          <select id="delete-group" name="name">
-            {% for groupName in groups %}
-              {% if groupName != 'site' %}
-                <option value="{{ groupName }}">{{ groupName }}</option>
-              {% endif %}
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-      <button class="btn" type="submit">Delete</button>
-    </form>
-  </div>
-
   <form method="post" accept-charset="UTF-8">
     {{ csrfInput() }}
     {{ actionInput('pragmatic-translations/translations/save') }}
@@ -174,31 +142,112 @@
     </div>
   </div>
 
+  <div style="margin-top: 24px;">
+    <a href="#group-management">Go to group management</a>
+  </div>
+
+  <div id="group-management" style="margin-top: 24px;">
+    <h2>Group Management</h2>
+    <form method="post" accept-charset="UTF-8">
+      {{ csrfInput() }}
+      {{ actionInput('pragmatic-translations/translations/save-groups') }}
+      {{ redirectInput('pragmatic-translations', { group: group, q: search, perPage: perPage, page: page }) }}
+
+      <table class="data fullwidth" style="margin-top: 12px;">
+        <thead>
+          <tr>
+            <th>Group</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for groupName in groups %}
+            <tr>
+              <td>
+                <input type="hidden" name="groups[{{ loop.index0 }}][original]" value="{{ groupName }}">
+                {% if groupName == 'site' %}
+                  <input class="text fullwidth" value="{{ groupName }}" disabled>
+                {% else %}
+                  <input class="text fullwidth" name="groups[{{ loop.index0 }}][name]" value="{{ groupName }}">
+                {% endif %}
+              </td>
+              <td>
+                {% if groupName != 'site' %}
+                  <label class="checkbox">
+                    <input type="checkbox" name="groups[{{ loop.index0 }}][delete]" value="1">
+                    <span></span>
+                  </label>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+
+          {% set newGroupIndex = groups|length %}
+          <tr data-new-group="1">
+            <td>
+              <input type="hidden" name="groups[{{ newGroupIndex }}][original]" value="">
+              <input class="text fullwidth" name="groups[{{ newGroupIndex }}][name]" placeholder="New group">
+            </td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="buttons" style="margin-top: 12px;">
+        <button class="btn" id="add-group-row" type="button">Add Group</button>
+        <button class="btn submit" type="submit">Save Groups</button>
+      </div>
+    </form>
+  </div>
+
   {% js %}
     (function() {
-      const table = document.getElementById('translations-table');
-      const addButton = document.getElementById('add-row');
-      if (!table || !addButton) return;
+      const translationsTable = document.getElementById('translations-table');
+      const addTranslationButton = document.getElementById('add-row');
+      if (translationsTable && addTranslationButton) {
+        addTranslationButton.addEventListener('click', function() {
+          const body = translationsTable.querySelector('tbody');
+          const template = body.querySelector('tr[data-new-row="1"]');
+          if (!template) return;
 
-      addButton.addEventListener('click', function() {
-        const body = table.querySelector('tbody');
-        const template = body.querySelector('tr[data-new-row="1"]');
-        if (!template) return;
+          const newIndex = body.querySelectorAll('tr').length;
+          const clone = template.cloneNode(true);
+          clone.removeAttribute('data-new-row');
 
-        const newIndex = body.querySelectorAll('tr').length;
-        const clone = template.cloneNode(true);
-        clone.removeAttribute('data-new-row');
+          clone.querySelectorAll('input').forEach(function(input) {
+            const name = input.getAttribute('name');
+            if (name) {
+              input.setAttribute('name', name.replace(/translations\[\d+\]/, 'translations[' + newIndex + ']'));
+            }
+            input.value = '';
+          });
 
-        clone.querySelectorAll('input').forEach(function(input) {
-          const name = input.getAttribute('name');
-          if (name) {
-            input.setAttribute('name', name.replace(/translations\[\d+\]/, 'translations[' + newIndex + ']'));
-          }
-          input.value = '';
+          body.appendChild(clone);
         });
+      }
 
-        body.appendChild(clone);
-      });
+      const addGroupButton = document.getElementById('add-group-row');
+      if (addGroupButton) {
+        addGroupButton.addEventListener('click', function() {
+          const body = document.querySelector('#group-management tbody');
+          const template = body.querySelector('tr[data-new-group="1"]');
+          if (!template) return;
+
+          const newIndex = body.querySelectorAll('tr').length;
+          const clone = template.cloneNode(true);
+          clone.removeAttribute('data-new-group');
+
+          clone.querySelectorAll('input').forEach(function(input) {
+            const name = input.getAttribute('name');
+            if (name) {
+              input.setAttribute('name', name.replace(/groups\[\d+\]/, 'groups[' + newIndex + ']'));
+            }
+            input.value = '';
+          });
+
+          body.appendChild(clone);
+        });
+      }
     })();
   {% endjs %}
 {% endblock %}

@@ -40,8 +40,7 @@ class PragmaticTranslations extends Plugin
                 $event->rules['pragmatic-translations/save'] = 'pragmatic-translations/translations/save';
                 $event->rules['pragmatic-translations/export'] = 'pragmatic-translations/translations/export';
                 $event->rules['pragmatic-translations/import'] = 'pragmatic-translations/translations/import';
-                $event->rules['pragmatic-translations/group/add'] = 'pragmatic-translations/translations/add-group';
-                $event->rules['pragmatic-translations/group/delete'] = 'pragmatic-translations/translations/delete-group';
+                $event->rules['pragmatic-translations/groups/save'] = 'pragmatic-translations/translations/save-groups';
             }
         );
 

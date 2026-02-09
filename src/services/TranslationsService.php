@@ -314,6 +314,35 @@ class TranslationsService extends Component
         return $name;
     }
 
+    public function saveGroups(array $items): void
+    {
+        foreach ($items as $item) {
+            $original = $this->normalizeGroup($item['original'] ?? '');
+            $name = $this->normalizeGroup($item['name'] ?? '');
+            $delete = !empty($item['delete']);
+
+            if ($original === 'site') {
+                continue;
+            }
+
+            if ($delete && $original !== '') {
+                $this->deleteGroup($original);
+                continue;
+            }
+
+            if ($original === '' && $name !== '') {
+                $this->ensureGroupExists($name);
+                continue;
+            }
+
+            if ($original !== '' && $name !== '' && $original !== $name) {
+                $this->ensureGroupExists($name);
+                TranslationRecord::updateAll(['group' => $name], ['group' => $original]);
+                TranslationGroupRecord::deleteAll(['name' => $original]);
+            }
+        }
+    }
+
     public function deleteTranslationById(int $id): void
     {
         $record = TranslationRecord::findOne($id);

@@ -294,22 +294,17 @@ class TranslationsController extends Controller
         ]);
     }
 
-    public function actionAddGroup(): Response
+    public function actionSaveGroups(): Response
     {
         $this->requirePostRequest();
-        $name = (string)Craft::$app->getRequest()->getBodyParam('name', '');
-        PragmaticTranslations::$plugin->translations->addGroup($name);
-        Craft::$app->getSession()->setNotice('Group added.');
 
-        return $this->redirectToPostedUrl();
-    }
+        $items = Craft::$app->getRequest()->getBodyParam('groups', []);
+        if (!is_array($items)) {
+            throw new BadRequestHttpException('Invalid groups payload.');
+        }
 
-    public function actionDeleteGroup(): Response
-    {
-        $this->requirePostRequest();
-        $name = (string)Craft::$app->getRequest()->getBodyParam('name', '');
-        PragmaticTranslations::$plugin->translations->deleteGroup($name);
-        Craft::$app->getSession()->setNotice('Group deleted.');
+        PragmaticTranslations::$plugin->translations->saveGroups($items);
+        Craft::$app->getSession()->setNotice('Groups saved.');
 
         return $this->redirectToPostedUrl();
     }
