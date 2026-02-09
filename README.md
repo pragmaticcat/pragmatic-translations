@@ -1,18 +1,20 @@
 # Pragmatic Translations
 
-Craft CMS 5 plugin to manage static translations stored in the database, with a CP UI and export/import tools.
+Craft CMS 5 plugin to manage static translations stored in the database, with a CP UI, import/export tools, and inline autotranslate for text fields.
 
 ## Features
 - CP section with two-level navigation: `Pragmatic > Translations`
+- Subpages like Craft Utilities: **Entradas**, **Importar/exportar**, **Grupos**, **Opciones**
 - Manage translation keys and groups (default group: `site`)
-- Per-site translation values (Craft multisite)
-- Search and filter by group
+- Per-language translation values (Craft multisite)
+- Search, tabs by group, and pagination (50/100/250)
 - Bulk editing and delete from the grid
-- Export to CSV, JSON, and PHP (ZIP with one file per locale)
+- Export to CSV, JSON, and PHP (ZIP with one file per locale + group)
 - Import from CSV, JSON, and PHP (ZIP)
 - Twig helper: `craft.pragmaticTranslations.t()`
 - Twig filter override: `{{ 'hero.title'|t }}`
 - Auto-creates missing keys on first access
+- Autotranslate from another site for PlainText/CKEditor fields (Google Translate v3)
 
 ## Requirements
 - Craft CMS `^5.0`
@@ -34,9 +36,10 @@ Craft CMS 5 plugin to manage static translations stored in the database, with a 
 ```
 
 ### CP
-- Go to `Pragmatic > Translations` to manage keys and values.
-- Use the export buttons for CSV/JSON/PHP.
-- Use the import form to upload CSV/JSON/PHP ZIP files.
+- Go to `Pragmatic > Translations`.
+- Use **Entradas** to edit translations.
+- Use **Importar/exportar** for CSV/JSON/PHP ZIP.
+- Use **Grupos** to add/rename/delete groups (except `site`).
 
 ## Export formats
 ### CSV
@@ -72,3 +75,32 @@ Each file returns a key/value array compatible with Craft i18n conventions.
 ## Permissions
 - `pragmatic-translations:manage`
 - `pragmatic-translations:export`
+
+## Autotranslate (Google Translate v3)
+Autotranslate appears in the field 3-dot menu for **PlainText** and **CKEditor** fields:
+- Select a source site
+- The value is translated into the current site language
+- The field is populated (no auto-save)
+
+### Config
+Create `config/pragmatic-translations.php` in your Craft project:
+```php
+<?php
+
+return [
+    'googleProjectId' => 'your-gcp-project-id',
+    'googleLocation' => 'global',
+    'googleApiKeyEnv' => 'GOOGLE_TRANSLATE_API_KEY',
+    'languageMap' => [
+        'es-ES' => 'es',
+        'ca-ES' => 'ca',
+        'en-US' => 'en',
+        'en-GB' => 'en',
+    ],
+];
+```
+
+And set the env var:
+```
+GOOGLE_TRANSLATE_API_KEY=...
+```

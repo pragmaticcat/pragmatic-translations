@@ -1,0 +1,21 @@
+<?php
+
+namespace pragmatic\translations\models;
+
+use craft\base\Model;
+
+class Settings extends Model
+{
+    public string $googleProjectId = '';
+    public string $googleLocation = 'global';
+    public string $googleApiKeyEnv = 'GOOGLE_TRANSLATE_API_KEY';
+    public array $languageMap = [];
+
+    public function rules(): array
+    {
+        return [
+            [['googleProjectId', 'googleLocation', 'googleApiKeyEnv'], 'string'],
+            ['languageMap', 'safe'],
+        ];
+    }
+}

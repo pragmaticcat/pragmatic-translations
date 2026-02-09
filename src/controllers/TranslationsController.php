@@ -5,6 +5,7 @@ namespace pragmatic\translations\controllers;
 use Craft;
 use craft\web\Controller;
 use pragmatic\translations\PragmaticTranslations;
+use craft\fields\PlainText;
 use yii\web\BadRequestHttpException;
 use yii\web\Response;
 
@@ -316,6 +317,63 @@ class TranslationsController extends Controller
         Craft::$app->getSession()->setNotice('Translations imported.');
 
         return $this->redirectToPostedUrl();
+    }
+
+    public function actionAutotranslate(): Response
+    {
+        $this->requirePostRequest();
+        $this->requireAcceptsJson();
+
+        $request = Craft::$app->getRequest();
+        $entryId = (int)$request->getBodyParam('entryId');
+        $fieldHandle = (string)$request->getBodyParam('fieldHandle');
+        $sourceSiteId = (int)$request->getBodyParam('sourceSiteId');
+        $targetSiteId = (int)$request->getBodyParam('targetSiteId');
+
+        if (!$entryId || $fieldHandle === '' || !$sourceSiteId || !$targetSiteId) {
+            return $this->asJson(['success' => false, 'error' => 'Missing required parameters.']);
+        }
+
+        $field = Craft::$app->getFields()->getFieldByHandle($fieldHandle);
+        if (!$field) {
+            return $this->asJson(['success' => false, 'error' => 'Field not found.']);
+        }
+
+        $isPlainText = $field instanceof PlainText;
+        $isCkeditor = class_exists(\\craft\\ckeditor\\Field::class) && $field instanceof \\craft\\ckeditor\\Field;
+        if (!$isPlainText && !$isCkeditor) {
+            return $this->asJson(['success' => false, 'error' => 'Field type not supported.']);
+        }
+
+        $entry = Craft::$app->getElements()->getElementById($entryId, null, $sourceSiteId);
+        if (!$entry) {
+            return $this->asJson(['success' => false, 'error' => 'Source entry not found.']);
+        }
+
+        $sourceSite = Craft::$app->getSites()->getSiteById($sourceSiteId);
+        $targetSite = Craft::$app->getSites()->getSiteById($targetSiteId);
+        if (!$sourceSite || !$targetSite) {
+            return $this->asJson(['success' => false, 'error' => 'Invalid site selection.']);
+        }
+
+        $value = $entry->getFieldValue($fieldHandle);
+        $text = (string)$value;
+        if (trim($text) === '') {
+            return $this->asJson(['success' => false, 'error' => 'Source field is empty.']);
+        }
+
+        $translate = PragmaticTranslations::$plugin->googleTranslate;
+        $sourceLang = $translate->resolveLanguageCode($sourceSite->language);
+        $targetLang = $translate->resolveLanguageCode($targetSite->language);
+        $mimeType = $isCkeditor ? 'text/html' : 'text/plain';
+
+        try {
+            $translated = $translate->translate($text, $sourceLang, $targetLang, $mimeType);
+        } catch (\\Throwable $e) {
+            return $this->asJson(['success' => false, 'error' => $e->getMessage()]);
+        }
+
+        return $this->asJson(['success' => true, 'text' => $translated]);
     }
 
     private function exportPhp(array $sites, $service): Response
