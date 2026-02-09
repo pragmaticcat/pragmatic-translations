@@ -186,9 +186,6 @@
     if (!fieldEl || fieldEl.getAttribute('data-pt-autotranslate') === '1') return;
     if (!isEligibleField(fieldEl)) return;
 
-    const heading = fieldEl.querySelector('.heading');
-    if (!heading) return;
-
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'btn small';
@@ -200,11 +197,16 @@
       openAutotranslateModal(fieldEl);
     });
 
-    const menuBtn = heading.querySelector('.menubtn');
+    const menuBtn = fieldEl.querySelector('.menubtn');
     if (menuBtn && menuBtn.parentElement) {
       menuBtn.parentElement.insertBefore(button, menuBtn);
     } else {
-      heading.appendChild(button);
+      const label = fieldEl.querySelector('label, legend');
+      if (label && label.parentElement) {
+        label.parentElement.appendChild(button);
+      } else {
+        fieldEl.insertBefore(button, fieldEl.firstChild);
+      }
     }
 
     fieldEl.setAttribute('data-pt-autotranslate', '1');
