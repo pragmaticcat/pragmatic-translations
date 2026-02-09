@@ -2,7 +2,7 @@
   "name": "pragmatic/pragmatic-translations",
   "description": "Manage static translations in Craft CMS",
   "type": "craft-plugin",
-  "license": "proprietary",
+  "license": "MIT",
   "require": {
     "php": ">=8.2",
     "craftcms/cms": "^5.0"
@@ -12,9 +12,23 @@
       "pragmatic\\translations\\": "src/"
     }
   },
+  "authors": [
+    {
+      "name": "Oriol Noya",
+      "email": "oriolnoya@pragmatic.cat"
+    }
+  ],
+  "support": {
+    "email": "oriolnoya@pragmatic.cat"
+  },
   "extra": {
-    "name": "Pragmatic Translations",
     "handle": "pragmatic-translations",
-    "class": "pragmatic\\translations\\PragmaticTranslations"
+    "class": "pragmatic\\translations\\PragmaticTranslations",
+    "name": "Pragmatic Translations",
+    "developer": "Pragmatic",
+    "developerUrl": "https://www.pragmatic.cat",
+    "documentationUrl": "https://github.com/pragmaticcat/analytics/blob/main/README.md",
+    "hasSettings": false,
+    "hasCpSection": true
   }
 }
