@@ -14,6 +14,7 @@
   },
   "extra": {
     "name": "Pragmatic Translations",
-    "handle": "pragmatic-translations"
+    "handle": "pragmatic-translations",
+    "class": "pragmatic\\translations\\PragmaticTranslations"
   }
 }
