@@ -279,7 +279,7 @@ class TranslationsController extends Controller
         $oldPath = $view->getTemplatesPath();
 
         $view->setTemplateMode(View::TEMPLATE_MODE_CP);
-        $view->setTemplatesPath(PragmaticTranslations::$plugin->getBasePath() . DIRECTORY_SEPARATOR . 'templates');
+        $view->setTemplatesPath(PragmaticTranslations::$plugin->getTemplatesBasePath());
 
         $html = $view->renderTemplate($template, $variables);
 

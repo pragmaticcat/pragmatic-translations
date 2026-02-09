@@ -26,7 +26,7 @@ class PragmaticTranslations extends Plugin
         parent::init();
 
         self::$plugin = $this;
-        $this->templateRoot = $this->getBasePath() . DIRECTORY_SEPARATOR . 'templates';
+        $this->templateRoot = $this->resolveTemplatesPath();
 
         $this->setComponents([
             'translations' => TranslationsService::class,
@@ -66,6 +66,26 @@ class PragmaticTranslations extends Plugin
                 $variable->set('pragmaticTranslations', PragmaticTranslationsVariable::class);
             }
         );
+    }
+
+    public function getTemplatesBasePath(): string
+    {
+        return $this->resolveTemplatesPath();
+    }
+
+    private function resolveTemplatesPath(): string
+    {
+        $rootPath = $this->getBasePath() . DIRECTORY_SEPARATOR . 'templates';
+        if (is_dir($rootPath)) {
+            return $rootPath;
+        }
+
+        $legacyPath = $this->getBasePath() . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . 'templates';
+        if (is_dir($legacyPath)) {
+            return $legacyPath;
+        }
+
+        return $rootPath;
     }
 
     public function getCpNavItem(): array
