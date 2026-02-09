@@ -28,6 +28,7 @@ class TranslationsController extends Controller
     public function actionIndex(): Response
     {
         $sites = Craft::$app->getSites()->getAllSites();
+        $languages = $this->getLanguages($sites);
         $request = Craft::$app->getRequest();
         $search = (string)$request->getParam('q', '');
         $group = (string)$request->getParam('group', '');
@@ -37,6 +38,7 @@ class TranslationsController extends Controller
 
         return $this->renderTemplate('pragmatic-translations/translations/index', [
             'sites' => $sites,
+            'languages' => $languages,
             'translations' => $translations,
             'groups' => $groups,
             'search' => $search,
@@ -53,6 +55,10 @@ class TranslationsController extends Controller
             throw new BadRequestHttpException('Invalid translations payload.');
         }
 
+        $sites = Craft::$app->getSites()->getAllSites();
+        $languageMap = $this->getLanguageMap($sites);
+        $items = $this->expandLanguageValuesToSites($items, $languageMap);
+
         PragmaticTranslations::$plugin->translations->saveTranslations($items);
         Craft::$app->getSession()->setNotice('Translations saved.');
 
@@ -63,6 +69,7 @@ class TranslationsController extends Controller
     {
         $format = strtolower((string)Craft::$app->getRequest()->getQueryParam('format', 'csv'));
         $sites = Craft::$app->getSites()->getAllSites();
+        $languages = $this->getLanguages($sites);
         $service = PragmaticTranslations::$plugin->translations;
 
         if ($format === 'php') {
@@ -78,8 +85,8 @@ class TranslationsController extends Controller
                     'description' => $translation['description'],
                     'translations' => [],
                 ];
-                foreach ($sites as $site) {
-                    $item['translations'][$site->handle] = $translation['values'][$site->id] ?? '';
+                foreach ($languages as $language) {
+                    $item['translations'][$language] = $this->getValueForLanguage($translation, $sites, $language);
                 }
                 $payload[$translation['key']] = $item;
             }
@@ -97,8 +104,8 @@ class TranslationsController extends Controller
         }
 
         $header = ['key', 'group', 'description'];
-        foreach ($sites as $site) {
-            $header[] = $site->handle;
+        foreach ($languages as $language) {
+            $header[] = $language;
         }
         fputcsv($handle, $header);
 
@@ -108,8 +115,8 @@ class TranslationsController extends Controller
                 $translation['group'],
                 $translation['description'],
             ];
-            foreach ($sites as $site) {
-                $row[] = $translation['values'][$site->id] ?? '';
+            foreach ($languages as $language) {
+                $row[] = $this->getValueForLanguage($translation, $sites, $language);
             }
             fputcsv($handle, $row);
         }
@@ -134,12 +141,7 @@ class TranslationsController extends Controller
         }
 
         $sites = Craft::$app->getSites()->getAllSites();
-        $siteHandles = [];
-        $siteLanguages = [];
-        foreach ($sites as $site) {
-            $siteHandles[$site->handle] = $site->id;
-            $siteLanguages[$site->language] = $site->id;
-        }
+        $languageMap = $this->getLanguageMap($sites);
 
         $items = [];
         if ($format === 'json') {
@@ -152,10 +154,8 @@ class TranslationsController extends Controller
             foreach ($data as $key => $item) {
                 $values = [];
                 $translations = $item['translations'] ?? [];
-                foreach ($translations as $handle => $value) {
-                    if (isset($siteHandles[$handle])) {
-                        $values[$siteHandles[$handle]] = (string)$value;
-                    }
+                foreach ($translations as $language => $value) {
+                    $values[$language] = (string)$value;
                 }
                 $items[] = [
                     'key' => (string)$key,
@@ -181,17 +181,14 @@ class TranslationsController extends Controller
             $files = glob($tmpDir . '/translations/*.php');
             foreach ($files as $path) {
                 $filename = basename($path, '.php');
-                if (!isset($siteLanguages[$filename])) {
-                    continue;
-                }
-                $siteId = $siteLanguages[$filename];
+                $language = $filename;
                 $map = include $path;
                 if (!is_array($map)) {
                     continue;
                 }
                 foreach ($map as $key => $value) {
                     $items[$key]['key'] = (string)$key;
-                    $items[$key]['values'][$siteId] = (string)$value;
+                    $items[$key]['values'][$language] = (string)$value;
                     $items[$key]['preserveMeta'] = true;
                 }
             }
@@ -213,9 +210,7 @@ class TranslationsController extends Controller
                     $columnMap[$column] = $index;
                     continue;
                 }
-                if (isset($siteHandles[$column])) {
-                    $columnMap[$column] = $index;
-                }
+                $columnMap[$column] = $index;
             }
 
             while (($row = fgetcsv($handle)) !== false) {
@@ -225,11 +220,11 @@ class TranslationsController extends Controller
                 }
 
                 $values = [];
-                foreach ($siteHandles as $handleName => $siteId) {
-                    if (!isset($columnMap[$handleName])) {
+                foreach ($columnMap as $column => $index) {
+                    if ($column === 'key' || $column === 'group' || $column === 'description') {
                         continue;
                     }
-                    $values[$siteId] = (string)($row[$columnMap[$handleName]] ?? '');
+                    $values[$column] = (string)($row[$index] ?? '');
                 }
 
                 $items[] = [
@@ -243,6 +238,7 @@ class TranslationsController extends Controller
             fclose($handle);
         }
 
+        $items = $this->expandLanguageValuesToSites($items, $languageMap);
         PragmaticTranslations::$plugin->translations->saveTranslations($items);
         Craft::$app->getSession()->setNotice('Translations imported.');
 
@@ -269,6 +265,65 @@ class TranslationsController extends Controller
         return Craft::$app->getResponse()->sendFile($zipPath, 'translations-php.zip', [
             'mimeType' => 'application/zip',
         ]);
+    }
+
+    private function getLanguages(array $sites): array
+    {
+        $languages = [];
+        foreach ($sites as $site) {
+            $languages[$site->language] = true;
+        }
+        $languages = array_keys($languages);
+        sort($languages);
+
+        return $languages;
+    }
+
+    private function getLanguageMap(array $sites): array
+    {
+        $map = [];
+        foreach ($sites as $site) {
+            $map[$site->language][] = $site->id;
+        }
+
+        return $map;
+    }
+
+    private function expandLanguageValuesToSites(array $items, array $languageMap): array
+    {
+        foreach ($items as &$item) {
+            if (!isset($item['values']) || !is_array($item['values'])) {
+                continue;
+            }
+            $valuesByLanguage = $item['values'];
+            $valuesBySite = [];
+            foreach ($valuesByLanguage as $language => $value) {
+                if (!isset($languageMap[$language])) {
+                    continue;
+                }
+                foreach ($languageMap[$language] as $siteId) {
+                    $valuesBySite[$siteId] = $value;
+                }
+            }
+            $item['values'] = $valuesBySite;
+        }
+        unset($item);
+
+        return $items;
+    }
+
+    private function getValueForLanguage(array $translation, array $sites, string $language): string
+    {
+        foreach ($sites as $site) {
+            if ($site->language !== $language) {
+                continue;
+            }
+            if (isset($translation['values'][$site->id])) {
+                return (string)$translation['values'][$site->id];
+            }
+        }
+
+        return '';
     }
 
 }

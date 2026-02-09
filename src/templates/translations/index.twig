@@ -66,8 +66,8 @@
           <th>Key</th>
           <th>Group</th>
           <th>Description</th>
-          {% for site in sites %}
-            <th>{{ site.handle }}</th>
+          {% for language in languages %}
+            <th>{{ language }}</th>
           {% endfor %}
           <th>Delete</th>
         </tr>
@@ -85,9 +85,15 @@
             <td>
               <input class="text fullwidth" name="translations[{{ loop.index0 }}][description]" value="{{ translation.description }}">
             </td>
-            {% for site in sites %}
+            {% for language in languages %}
               <td>
-                <input class="text fullwidth" name="translations[{{ loop.parent.loop.index0 }}][values][{{ site.id }}]" value="{{ translation.values[site.id] ?? '' }}">
+                {% set value = '' %}
+                {% for site in sites %}
+                  {% if site.language == language and translation.values[site.id] is defined %}
+                    {% set value = translation.values[site.id] %}
+                  {% endif %}
+                {% endfor %}
+                <input class="text fullwidth" name="translations[{{ loop.parent.loop.index0 }}][values][{{ language }}]" value="{{ value }}">
               </td>
             {% endfor %}
             <td>
@@ -110,9 +116,9 @@
           <td>
             <input class="text fullwidth" name="translations[{{ newIndex }}][description]" placeholder="Optional description">
           </td>
-          {% for site in sites %}
+          {% for language in languages %}
             <td>
-              <input class="text fullwidth" name="translations[{{ newIndex }}][values][{{ site.id }}]" placeholder="">
+              <input class="text fullwidth" name="translations[{{ newIndex }}][values][{{ language }}]" placeholder="">
             </td>
           {% endfor %}
           <td></td>
