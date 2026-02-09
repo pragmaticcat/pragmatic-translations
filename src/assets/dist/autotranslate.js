@@ -5,6 +5,12 @@
 
   const config = window.PragmaticTranslations;
 
+  function t(message) {
+    return (window.Craft && typeof Craft.t === 'function')
+      ? Craft.t('pragmatic-translations', message)
+      : message;
+  }
+
   function getEntryId(fieldEl) {
     const form = fieldEl.closest('form');
     if (!form) return null;
@@ -23,12 +29,18 @@
 
   function isEligibleField(fieldEl) {
     const type = fieldEl.getAttribute('data-type') || '';
-    if (type.indexOf('craft\\\\fields\\\\PlainText') !== -1) return true;
-    if (type.indexOf('craft\\\\ckeditor\\\\Field') !== -1) return true;
+    if (type.indexOf('craft\\fields\\PlainText') !== -1) return true;
+    if (type.indexOf('craft\\ckeditor\\Field') !== -1) return true;
+    return false;
+  }
 
-    if (fieldEl.querySelector('.ck-editor')) return true;
-    if (fieldEl.querySelector('textarea[name^="fields["]')) return true;
-    if (fieldEl.querySelector('input[type="text"][name^="fields["]')) return true;
+  function isTranslatableField(fieldEl) {
+    if (fieldEl.getAttribute('data-translatable') === '1' || fieldEl.getAttribute('data-translatable') === 'true') {
+      return true;
+    }
+    if (fieldEl.querySelector('.t9n-indicator')) {
+      return true;
+    }
     return false;
   }
 
@@ -71,11 +83,11 @@
     }
   }
 
-  function openAutotranslateModal(fieldEl, menuEl) {
+  function openAutotranslateModal(fieldEl) {
     const currentSiteId = config.currentSiteId;
     const sites = config.sites.filter(site => site.id !== currentSiteId);
     if (!sites.length) {
-      Craft.cp.displayError('No other sites available.');
+      Craft.cp.displayError(t('No other sites available.'));
       return;
     }
 
@@ -83,7 +95,7 @@
     modal.className = 'modal fitted';
     modal.innerHTML = `
       <div class="body">
-        <h2>Autotranslate from</h2>
+        <h2>${t('Translate from site…')}</h2>
         <div class="field">
           <div class="select">
             <select id="pt-source-site">
@@ -92,8 +104,8 @@
           </div>
         </div>
         <div class="buttons" style="margin-top:12px;">
-          <button class="btn" type="button" id="pt-cancel">Cancel</button>
-          <button class="btn submit" type="button" id="pt-confirm">Translate</button>
+          <button class="btn" type="button" id="pt-cancel">${t('Cancel')}</button>
+          <button class="btn submit" type="button" id="pt-confirm">${t('Translate')}</button>
         </div>
       </div>
     `;
@@ -117,7 +129,7 @@
       const targetSiteId = currentSiteId;
 
       if (!entryId || !fieldHandle) {
-        Craft.cp.displayError('Unable to resolve entry or field handle.');
+        Craft.cp.displayError(t('Unable to resolve entry or field handle.'));
         garnModal.hide();
         return;
       }
@@ -132,12 +144,12 @@
       }).then((response) => {
         if (response.data && response.data.success) {
           setFieldValue(fieldEl, response.data.text || '');
-          Craft.cp.displayNotice('Translated.');
+          Craft.cp.displayNotice(t('Translated.'));
         } else {
-          Craft.cp.displayError(response.data && response.data.error ? response.data.error : 'Translation failed.');
+          Craft.cp.displayError(response.data && response.data.error ? response.data.error : t('Translation failed.'));
         }
       }).catch((error) => {
-        const message = error.response && error.response.data && error.response.data.error ? error.response.data.error : 'Translation failed.';
+        const message = error.response && error.response.data && error.response.data.error ? error.response.data.error : t('Translation failed.');
         Craft.cp.displayError(message);
       }).finally(() => {
         garnModal.hide();
@@ -145,92 +157,44 @@
     });
   }
 
-  function ensureMenuItem(fieldEl, menuEl) {
-    if (menuEl.querySelector('.pt-autotranslate')) return;
-    const li = document.createElement('li');
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'menu-item pt-autotranslate';
-    button.innerHTML = '<span class=\"menu-item-label inline-flex flex-col items-start gap-2xs\">Autotranslate from...</span>';
-    button.addEventListener('click', function(ev) {
-      ev.preventDefault();
-      openAutotranslateModal(fieldEl, menuEl);
-    });
-    li.appendChild(button);
-
-    const list = menuEl.querySelector('ul:first-of-type') || menuEl.querySelector('ul') || menuEl;
-    list.appendChild(li);
-  }
-
-  function findMenuForButton(btn, fieldEl) {
-    const menuId = btn.getAttribute('aria-controls');
-    if (menuId) {
-      const byId = document.getElementById(menuId);
-      if (byId) return byId;
-    }
-
-    const localMenu = fieldEl.querySelector('.menu');
-    if (localMenu) return localMenu;
-
-    return document.querySelector('.menu.menu--active, .menu[aria-hidden=\"false\"]');
-  }
-
-  function waitForMenu(btn, fieldEl, attempts) {
-    const menuEl = findMenuForButton(btn, fieldEl);
-    if (menuEl) return menuEl;
-    if (attempts <= 0) return null;
-    return new Promise((resolve) => {
-      setTimeout(function() {
-        resolve(waitForMenu(btn, fieldEl, attempts - 1));
-      }, 50);
-    });
-  }
-
-  function addInlineButton(fieldEl) {
+  function addMenuOption(fieldEl) {
     if (!fieldEl || fieldEl.getAttribute('data-pt-autotranslate') === '1') return;
     if (!isEligibleField(fieldEl)) return;
+    if (!isTranslatableField(fieldEl)) return;
 
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'btn small';
-    button.textContent = 'Autotranslate from...';
-    button.style.marginRight = '8px';
+    const menuBtnEl = fieldEl.querySelector('.menubtn');
+    if (!menuBtnEl || !window.Garnish || !window.Garnish.$) return;
 
-    button.addEventListener('click', function(ev) {
-      ev.preventDefault();
-      openAutotranslateModal(fieldEl);
-    });
+    const $btn = window.Garnish.$(menuBtnEl);
+    const menuBtn = $btn.data('menubtn') || $btn.data('menuBtn');
+    if (!menuBtn || !menuBtn.menu || typeof menuBtn.menu.addOptions !== 'function') return;
 
-    const menuBtn = fieldEl.querySelector('.menubtn');
-    if (menuBtn && menuBtn.parentElement) {
-      menuBtn.parentElement.insertBefore(button, menuBtn);
-    } else {
-      const label = fieldEl.querySelector('label, legend');
-      if (label && label.parentElement) {
-        label.parentElement.appendChild(button);
-      } else {
-        fieldEl.insertBefore(button, fieldEl.firstChild);
-      }
-    }
-
+    const label = t('Translate from site…');
+    menuBtn.menu.addOptions([{ label, onClick: function() { openAutotranslateModal(fieldEl); } }]);
     fieldEl.setAttribute('data-pt-autotranslate', '1');
   }
 
   function scanFields() {
-    document.querySelectorAll('.field').forEach(addInlineButton);
+    document.querySelectorAll('.field').forEach(addMenuOption);
   }
 
-  scanFields();
+  if (window.Garnish && Garnish.$doc) {
+    Garnish.$doc.ready(function() {
+      scanFields();
+    });
+  } else {
+    scanFields();
+  }
 
   const observer = new MutationObserver(function(mutations) {
     for (const mutation of mutations) {
       mutation.addedNodes.forEach(function(node) {
         if (!(node instanceof Element)) return;
         if (node.classList.contains('field')) {
-          addInlineButton(node);
+          addMenuOption(node);
           return;
         }
-        node.querySelectorAll && node.querySelectorAll('.field').forEach(addInlineButton);
+        node.querySelectorAll && node.querySelectorAll('.field').forEach(addMenuOption);
       });
     }
   });
