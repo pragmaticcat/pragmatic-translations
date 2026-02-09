@@ -112,6 +112,10 @@ class TranslationsService extends Component
                 }
 
                 if (!$record) {
+                    $record = TranslationRecord::find()->where(['key' => $key])->one();
+                }
+
+                if (!$record) {
                     $record = new TranslationRecord();
                 }
 
