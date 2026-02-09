@@ -179,6 +179,7 @@ class TranslationsController extends Controller
             foreach ($files as $path) {
                 $language = basename(dirname($path));
                 $group = basename($path, '.php');
+                PragmaticTranslations::$plugin->translations->ensureGroupExists($group);
                 $map = include $path;
                 if (!is_array($map)) {
                     continue;
