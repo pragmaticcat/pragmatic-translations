@@ -188,6 +188,21 @@ class TranslationsService extends Component
         return $translations;
     }
 
+    public function getValueWithFallback(string $key, ?int $siteId = null, bool $fallbackToPrimary = true): ?string
+    {
+        $siteId = $siteId ?? Craft::$app->getSites()->getCurrentSite()->id;
+        $value = $this->getValue($key, $siteId);
+
+        if ($value === null && $fallbackToPrimary) {
+            $primarySiteId = Craft::$app->getSites()->getPrimarySite()->id;
+            if ($primarySiteId !== $siteId) {
+                $value = $this->getValue($key, $primarySiteId);
+            }
+        }
+
+        return $value;
+    }
+
     public function getGroups(): array
     {
         $groups = (new Query())

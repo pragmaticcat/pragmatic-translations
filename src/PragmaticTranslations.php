@@ -10,6 +10,7 @@ use craft\services\UserPermissions;
 use craft\web\UrlManager;
 use craft\web\twig\variables\CraftVariable;
 use pragmatic\translations\services\TranslationsService;
+use pragmatic\translations\twig\PragmaticTranslationsTwigExtension;
 use pragmatic\translations\variables\PragmaticTranslationsVariable;
 use yii\base\Event;
 
@@ -65,6 +66,8 @@ class PragmaticTranslations extends Plugin
                 $variable->set('pragmaticTranslations', PragmaticTranslationsVariable::class);
             }
         );
+
+        Craft::$app->getView()->registerTwigExtension(new PragmaticTranslationsTwigExtension());
     }
 
 
