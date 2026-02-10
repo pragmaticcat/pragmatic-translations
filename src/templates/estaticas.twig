@@ -42,8 +42,6 @@
           </select>
         </div>
       </div>
-      <button class="btn" type="submit">Filter</button>
-      <a class="btn" href="{{ url('pragmatic-translations/entries', { group: group, perPage: perPage }) }}">Reset</a>
     </form>
   </div>
 
@@ -51,6 +49,14 @@
     {{ csrfInput() }}
     {{ actionInput('pragmatic-translations/translations/save') }}
     {{ redirectInput('pragmatic-translations/entries', { group: group, q: search, perPage: perPage, page: page }) }}
+
+    <div class="flex justify-between align-center" style="margin-top: 16px;">
+      <div></div>
+      <div class="buttons">
+        <button class="btn" id="add-row" type="button">Add Row</button>
+        <button class="btn submit" type="submit">Save</button>
+      </div>
+    </div>
 
     <table class="data fullwidth" id="translations-table" style="margin-top: 16px;">
       <thead>
@@ -106,10 +112,6 @@
       </tbody>
     </table>
 
-    <div class="buttons" style="margin-top: 12px;">
-      <button class="btn" id="add-row" type="button">Add Row</button>
-      <button class="btn submit" type="submit">Save</button>
-    </div>
   </form>
 
   <div class="flex justify-between align-center" style="margin-top: 16px;">
@@ -202,6 +204,8 @@
         }
         if (perPageSelect) {
           perPageSelect.addEventListener('change', function() {
+            const pageInput = filterForm.querySelector('input[name=\"page\"]');
+            if (pageInput) pageInput.value = '1';
             filterForm.submit();
           });
         }
