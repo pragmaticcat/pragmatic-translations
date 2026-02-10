@@ -161,7 +161,7 @@ class TranslationsController extends Controller
         $offset = ($page - 1) * $perPage;
         $pageRows = array_slice($rows, $offset, $perPage);
 
-        $sections = Craft::$app->sections->getAllSections();
+        $sections = Craft::$app->get('sections')->getAllSections();
         $fieldOptions = $this->getEntryFieldOptions();
 
         return $this->renderTemplate('pragmatic-translations/entradas', [
