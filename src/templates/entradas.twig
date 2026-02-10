@@ -56,7 +56,7 @@
   <form method="post" accept-charset="UTF-8">
     {{ csrfInput() }}
     {{ actionInput('pragmatic-translations/translations/save-entry-row') }}
-    {{ redirectInput('pragmatic-translations/groups', { q: search, perPage: perPage, page: page, section: sectionId, field: fieldFilter }) }}
+    {{ redirectInput('pragmatic-translations/entries', { q: search, perPage: perPage, page: page, section: sectionId, field: fieldFilter }) }}
 
     <table class="data fullwidth" style="margin-top: 16px;">
       <thead>
@@ -110,13 +110,13 @@
       {% if page == 1 %}
         <span class="btn disabled">Prev</span>
       {% else %}
-        <a class="btn" href="{{ url('pragmatic-translations/groups', { q: search, perPage: perPage, page: prevPage, section: sectionId, field: fieldFilter }) }}">Prev</a>
+        <a class="btn" href="{{ url('pragmatic-translations/entries', { q: search, perPage: perPage, page: prevPage, section: sectionId, field: fieldFilter }) }}">Prev</a>
       {% endif %}
       <div>Page {{ page }} / {{ totalPages }}</div>
       {% if page == totalPages %}
         <span class="btn disabled">Next</span>
       {% else %}
-        <a class="btn" href="{{ url('pragmatic-translations/groups', { q: search, perPage: perPage, page: nextPage, section: sectionId, field: fieldFilter }) }}">Next</a>
+        <a class="btn" href="{{ url('pragmatic-translations/entries', { q: search, perPage: perPage, page: nextPage, section: sectionId, field: fieldFilter }) }}">Next</a>
       {% endif %}
     </div>
   </div>

@@ -30,7 +30,7 @@ class TranslationsController extends Controller
 
     public function actionIndex(): Response
     {
-        return $this->redirect('pragmatic-translations/entries');
+        return $this->redirect('pragmatic-translations/static');
     }
 
     public function actionEntries(): Response
