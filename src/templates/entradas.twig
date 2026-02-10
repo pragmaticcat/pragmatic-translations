@@ -1,11 +1,11 @@
 {% extends "pragmatic-translations/_layout" %}
 
 {% set title = "Entradas"|t('pragmatic-translations') %}
-{% set selectedTab = 'groups' %}
+{% set selectedTab = 'entries' %}
 
-{% set crumbs = [
+{% set crumbs = [ 
     { label: "Translations"|t('pragmatic-translations'), url: url('pragmatic-translations') },
-    { label: "Entradas"|t('pragmatic-translations'), url: url('pragmatic-translations/groups') },
+    { label: "Entradas"|t('pragmatic-translations'), url: url('pragmatic-translations/entries') },
 ] %}
 
 {% block content %}
@@ -78,8 +78,8 @@
           <tr{{ isFirstOfGroup and not loop.first ? ' class="entry-group-border"' : '' }}>
             {% if isFirstOfGroup %}
               <td rowspan="{{ entryRowCounts[entryId] }}" style="vertical-align: top;">
-                <a href="#" class="js-entry-slideout" data-entry-id="{{ entryId }}">{{ row.entry.title }}</a>
-                <div class="light">{{ row.entry.section.name ?? '' }}</div>
+                <a href="#" class="js-entry-slideout" data-entry-id="{{ entryId }}">{{ row.entry.title|default('Entry #' ~ entryId) }}</a>
+                <div class="light">{{ row.entry.section.name ?? 'No section' }}</div>
               </td>
             {% endif %}
             <td>
