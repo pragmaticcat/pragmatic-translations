@@ -6,6 +6,8 @@ use Craft;
 use craft\web\Controller;
 use pragmatic\translations\PragmaticTranslations;
 use craft\fields\PlainText;
+use craft\elements\Entry;
+use craft\models\Section;
 use yii\web\BadRequestHttpException;
 use yii\web\Response;
 
@@ -91,18 +93,135 @@ class TranslationsController extends Controller
         $groups = $service->getGroups();
         $request = Craft::$app->getRequest();
         $search = (string)$request->getParam('q', '');
-        $group = (string)$request->getParam('group', 'site');
         $perPage = (int)$request->getParam('perPage', 50);
         if (!in_array($perPage, [50, 100, 250], true)) {
             $perPage = 50;
         }
+        $page = max(1, (int)$request->getParam('page', 1));
+        $sectionId = (int)$request->getParam('section', 0);
+        $fieldFilter = (string)$request->getParam('field', '');
+
+        $sites = Craft::$app->getSites()->getAllSites();
+        $languages = $this->getLanguages($sites);
+        $languageMap = $this->getLanguageMap($sites);
+
+        $primarySiteId = Craft::$app->getSites()->getPrimarySite()->id;
+        $entryQuery = Entry::find()->siteId($primarySiteId)->status(null);
+        if ($sectionId) {
+            $entryQuery->sectionId($sectionId);
+        }
+        if ($search !== '') {
+            $entryQuery->search($search);
+        }
+
+        $entries = $entryQuery->all();
+
+        $rows = [];
+        foreach ($entries as $entry) {
+            $layout = $entry->getFieldLayout();
+            $fields = $layout ? $layout->getCustomFields() : [];
+
+            $eligibleFields = [];
+            foreach ($fields as $field) {
+                $isEligible = ($field instanceof PlainText) || (get_class($field) === 'craft\\ckeditor\\Field');
+                if (!$isEligible) {
+                    continue;
+                }
+                if ($field->translationMethod === \craft\base\Field::TRANSLATION_METHOD_NONE) {
+                    continue;
+                }
+                if ($fieldFilter !== '' && $field->handle !== $fieldFilter) {
+                    continue;
+                }
+                $eligibleFields[] = $field;
+            }
+
+            if ($fieldFilter === '' || $fieldFilter === 'title') {
+                $rows[] = [
+                    'entry' => $entry,
+                    'fieldHandle' => 'title',
+                    'fieldLabel' => Craft::t('app', 'Title'),
+                ];
+            }
+
+            foreach ($eligibleFields as $field) {
+                $rows[] = [
+                    'entry' => $entry,
+                    'fieldHandle' => $field->handle,
+                    'fieldLabel' => $field->name,
+                ];
+            }
+        }
+
+        $total = count($rows);
+        $totalPages = max(1, (int)ceil($total / $perPage));
+        if ($page > $totalPages) {
+            $page = $totalPages;
+        }
+        $offset = ($page - 1) * $perPage;
+        $pageRows = array_slice($rows, $offset, $perPage);
+
+        $sections = Craft::$app->getSections()->getAllSections();
+        $fieldOptions = $this->getEntryFieldOptions();
 
         return $this->renderTemplate('pragmatic-translations/entradas', [
-            'groups' => $groups,
+            'rows' => $pageRows,
+            'languages' => $languages,
+            'languageMap' => $languageMap,
+            'sections' => $sections,
+            'sectionId' => $sectionId,
+            'fieldFilter' => $fieldFilter,
             'search' => $search,
-            'group' => $group,
             'perPage' => $perPage,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'total' => $total,
+            'fieldOptions' => $fieldOptions,
         ]);
+    }
+
+    public function actionSaveEntryRow(): Response
+    {
+        $this->requirePostRequest();
+
+        $saveRow = Craft::$app->getRequest()->getBodyParam('saveRow');
+        $entries = Craft::$app->getRequest()->getBodyParam('entries', []);
+        if ($saveRow === null || !isset($entries[$saveRow])) {
+            throw new BadRequestHttpException('Invalid entry payload.');
+        }
+
+        $row = $entries[$saveRow];
+        $entryId = (int)($row['entryId'] ?? 0);
+        $fieldHandle = (string)($row['fieldHandle'] ?? '');
+        $values = (array)($row['values'] ?? []);
+
+        if (!$entryId || $fieldHandle === '') {
+            throw new BadRequestHttpException('Missing entry data.');
+        }
+
+        $sites = Craft::$app->getSites()->getAllSites();
+        $languageMap = $this->getLanguageMap($sites);
+
+        foreach ($values as $language => $value) {
+            if (!isset($languageMap[$language])) {
+                continue;
+            }
+            foreach ($languageMap[$language] as $siteId) {
+                $entry = Craft::$app->getElements()->getElementById($entryId, Entry::class, $siteId);
+                if (!$entry) {
+                    continue;
+                }
+                if ($fieldHandle === 'title') {
+                    $entry->title = (string)$value;
+                } else {
+                    $entry->setFieldValue($fieldHandle, (string)$value);
+                }
+                Craft::$app->getElements()->saveElement($entry, false, false);
+            }
+        }
+
+        Craft::$app->getSession()->setNotice('Entry saved.');
+        return $this->redirectToPostedUrl();
     }
 
     public function actionOptions(): Response
@@ -480,6 +599,28 @@ class TranslationsController extends Controller
         }
 
         return $map;
+    }
+
+    private function getEntryFieldOptions(): array
+    {
+        $options = [
+            ['value' => '', 'label' => Craft::t('app', 'All')],
+            ['value' => 'title', 'label' => Craft::t('app', 'Title')],
+        ];
+
+        $fields = Craft::$app->getFields()->getAllFields();
+        foreach ($fields as $field) {
+            $isEligible = ($field instanceof PlainText) || (get_class($field) === 'craft\\ckeditor\\Field');
+            if (!$isEligible) {
+                continue;
+            }
+            if ($field->translationMethod === \craft\base\Field::TRANSLATION_METHOD_NONE) {
+                continue;
+            }
+            $options[] = ['value' => $field->handle, 'label' => $field->name];
+        }
+
+        return $options;
     }
 
     private function expandLanguageValuesToSites(array $items, array $languageMap): array

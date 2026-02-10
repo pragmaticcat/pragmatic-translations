@@ -1,7 +1,6 @@
 {% extends "pragmatic-translations/_layout" %}
 
 {% set title = "Entradas"|t('pragmatic-translations') %}
-
 {% set selectedTab = 'groups' %}
 
 {% set crumbs = [
@@ -10,5 +9,164 @@
 ] %}
 
 {% block content %}
-  <p class="light" style="margin-top: 12px;">No hay contenido en esta pestaña.</p>
+  <div class="flex" style="margin-top: 12px; gap: 16px; align-items: flex-end;">
+    <form method="get" id="entries-filter" class="flex" style="gap: 12px; align-items: flex-end;">
+      <input type="hidden" name="page" value="1">
+      <div>
+        <label for="q">Search</label>
+        <input class="text" type="text" id="q" name="q" value="{{ search }}" placeholder="Entry title">
+      </div>
+      <div>
+        <label for="section">Section</label>
+        <div class="select">
+          <select id="section" name="section">
+            <option value="">All</option>
+            {% for section in sections %}
+              <option value="{{ section.id }}" {{ section.id == sectionId ? 'selected' : '' }}>{{ section.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label for="field">Field</label>
+        <div class="select">
+          <select id="field" name="field">
+            {% for option in fieldOptions %}
+              <option value="{{ option.value }}" {{ option.value == fieldFilter ? 'selected' : '' }}>{{ option.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label for="perPage">Per page</label>
+        <div class="select">
+          <select id="perPage" name="perPage">
+            {% for option in [50, 100, 250] %}
+              <option value="{{ option }}" {{ option == perPage ? 'selected' : '' }}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <form method="post" accept-charset="UTF-8">
+    {{ csrfInput() }}
+    {{ actionInput('pragmatic-translations/translations/save-entry-row') }}
+    {{ redirectInput('pragmatic-translations/groups', { q: search, perPage: perPage, page: page, section: sectionId, field: fieldFilter }) }}
+
+    <table class="data fullwidth" style="margin-top: 16px;">
+      <thead>
+        <tr>
+          <th>Entry</th>
+          <th>Field</th>
+          {% for language in languages %}
+            <th>{{ language }}</th>
+          {% endfor %}
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          {% set rowIndex = loop.index0 %}
+          <tr>
+            <td>
+              <a href="#" class="js-entry-slideout" data-entry-id="{{ row.entry.id }}">{{ row.entry.title }}</a>
+              <div class="light">{{ row.entry.section.name }}</div>
+              <input type="hidden" name="entries[{{ rowIndex }}][entryId]" value="{{ row.entry.id }}">
+              <input type="hidden" name="entries[{{ rowIndex }}][fieldHandle]" value="{{ row.fieldHandle }}">
+            </td>
+            <td>
+              <div>{{ row.fieldLabel }}</div>
+              <div class="light">{{ row.fieldHandle }}</div>
+            </td>
+            {% for language in languages %}
+              <td>
+                {% set value = '' %}
+                {% for siteId in languageMap[language] %}
+                  {% set entryForSite = craft.entries.id(row.entry.id).siteId(siteId).one() %}
+                  {% if entryForSite %}
+                    {% if row.fieldHandle == 'title' %}
+                      {% set value = entryForSite.title %}
+                    {% else %}
+                      {% set value = entryForSite.getFieldValue(row.fieldHandle)|string %}
+                    {% endif %}
+                    {% break %}
+                  {% endif %}
+                {% endfor %}
+                <input class="text fullwidth" name="entries[{{ rowIndex }}][values][{{ language }}]" value="{{ value }}">
+              </td>
+            {% endfor %}
+            <td>
+              <button class="btn submit" type="submit" name="saveRow" value="{{ rowIndex }}">Save</button>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </form>
+
+  <div class="flex justify-between align-center" style="margin-top: 16px;">
+    <div>{{ total }} total</div>
+    <div class="flex" style="gap: 8px; align-items: center;">
+      {% set prevPage = page > 1 ? page - 1 : 1 %}
+      {% set nextPage = page < totalPages ? page + 1 : totalPages %}
+      <a class="btn {{ page == 1 ? 'disabled' : '' }}" href="{{ url('pragmatic-translations/groups', { q: search, perPage: perPage, page: prevPage, section: sectionId, field: fieldFilter }) }}">Prev</a>
+      <div>Page {{ page }} / {{ totalPages }}</div>
+      <a class="btn {{ page == totalPages ? 'disabled' : '' }}" href="{{ url('pragmatic-translations/groups', { q: search, perPage: perPage, page: nextPage, section: sectionId, field: fieldFilter }) }}">Next</a>
+    </div>
+  </div>
+
+  {% js %}
+    (function() {
+      const filterForm = document.getElementById('entries-filter');
+      const searchInput = document.getElementById('q');
+      const sectionSelect = document.getElementById('section');
+      const fieldSelect = document.getElementById('field');
+      const perPageSelect = document.getElementById('perPage');
+
+      if (filterForm) {
+        let searchTimer = null;
+        if (searchInput) {
+          searchInput.addEventListener('input', function() {
+            if (searchTimer) {
+              clearTimeout(searchTimer);
+            }
+            searchTimer = setTimeout(function() {
+              filterForm.submit();
+            }, 300);
+          });
+        }
+        if (sectionSelect) {
+          sectionSelect.addEventListener('change', function() {
+            filterForm.submit();
+          });
+        }
+        if (fieldSelect) {
+          fieldSelect.addEventListener('change', function() {
+            filterForm.submit();
+          });
+        }
+        if (perPageSelect) {
+          perPageSelect.addEventListener('change', function() {
+            const pageInput = filterForm.querySelector('input[name="page"]');
+            if (pageInput) pageInput.value = '1';
+            filterForm.submit();
+          });
+        }
+      }
+
+      document.querySelectorAll('.js-entry-slideout').forEach(function(link) {
+        link.addEventListener('click', function(ev) {
+          ev.preventDefault();
+          const entryId = parseInt(link.getAttribute('data-entry-id'), 10);
+          if (!entryId || !window.Craft) return;
+          Craft.createElementEditor('craft\\elements\\Entry', {
+            elementId: entryId,
+            slideout: true
+          });
+        });
+      });
+    })();
+  {% endjs %}
 {% endblock %}

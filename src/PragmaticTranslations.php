@@ -57,6 +57,7 @@ class PragmaticTranslations extends Plugin
                 $event->rules['pragmatic-translations/groups/save'] = 'pragmatic-translations/translations/save-groups';
                 $event->rules['pragmatic-translations/autotranslate'] = 'pragmatic-translations/translations/autotranslate';
                 $event->rules['pragmatic-translations/options/save'] = 'pragmatic-translations/translations/save-options';
+                $event->rules['pragmatic-translations/entries/save-row'] = 'pragmatic-translations/translations/save-entry-row';
             }
         );
 
