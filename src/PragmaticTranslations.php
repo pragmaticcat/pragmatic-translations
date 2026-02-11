@@ -17,6 +17,8 @@ use craft\web\twig\variables\CraftVariable;
 use craft\helpers\UrlHelper;
 use pragmatic\translations\assets\AutotranslateAsset;
 use pragmatic\translations\models\Settings;
+use craft\events\RegisterCpNavItemsEvent;
+use craft\web\twig\variables\Cp;
 use pragmatic\translations\services\TranslationsService;
 use pragmatic\translations\services\GoogleTranslateService;
 use pragmatic\translations\twig\PragmaticTranslationsTwigExtension;
