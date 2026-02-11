@@ -78,13 +78,34 @@ class PragmaticTranslations extends Plugin
                 }
 
                 if ($groupKey === null) {
-                    $event->navItems[] = [
+                    $newItem = [
                         'label' => 'Pragmatic',
                         'url' => 'pragmatic-translations',
-                        'icon' => __DIR__ . '/icons/gift.svg',
+                        'icon' => __DIR__ . '/icons/icon.svg',
                         'subnav' => [],
                     ];
-                    $groupKey = array_key_last($event->navItems);
+
+                    // Insert after a specific nav item (e.g. 'entries')
+                    $afterKey = null;
+                    foreach ($event->navItems as $key => $item) {
+                        if (($item['url'] ?? '') === 'users') {
+                            $afterKey = $key;
+                            break;
+                        }
+                    }
+
+                    if ($afterKey !== null) {
+                        $pos = array_search($afterKey, array_keys($event->navItems)) + 1;
+                        $event->navItems = array_merge(
+                            array_slice($event->navItems, 0, $pos, true),
+                            ['pragmatic' => $newItem],
+                            array_slice($event->navItems, $pos, null, true),
+                        );
+                        $groupKey = 'pragmatic';
+                    } else {
+                        $event->navItems['pragmatic'] = $newItem;
+                        $groupKey = 'pragmatic';
+                    }
                 }
 
                 $event->navItems[$groupKey]['subnav']['translations'] = [
