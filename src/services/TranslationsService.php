@@ -8,6 +8,9 @@ use craft\db\Query;
 use pragmatic\translations\records\TranslationGroupRecord;
 use pragmatic\translations\records\TranslationRecord;
 use pragmatic\translations\records\TranslationValueRecord;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use SplFileInfo;
 
 class TranslationsService extends Component
 {
@@ -351,6 +354,100 @@ class TranslationsService extends Component
         }
     }
 
+    public function scanProjectTemplatesForTranslatableKeys(string $group = 'site'): array
+    {
+        $group = $this->normalizeGroup($group);
+        $templateDirs = $this->discoverProjectTemplateDirs();
+        $keys = [];
+        $fileCount = 0;
+        $matchCount = 0;
+
+        foreach ($templateDirs as $dir) {
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
+            );
+
+            /** @var SplFileInfo $file */
+            foreach ($iterator as $file) {
+                if (!$file->isFile() || strtolower((string)$file->getExtension()) !== 'twig') {
+                    continue;
+                }
+
+                $fileCount++;
+                $contents = @file_get_contents($file->getPathname());
+                if ($contents === false || $contents === '') {
+                    continue;
+                }
+
+                preg_match_all(
+                    '/([\'"])((?:\\\\.|(?!\\1).)*)\\1\\s*\\|\\s*t(?:\\s*\\(\\s*([\'"])((?:\\\\.|(?!\\3).)*)\\3)?/m',
+                    $contents,
+                    $matches,
+                    PREG_SET_ORDER,
+                );
+
+                foreach ($matches as $match) {
+                    $matchCount++;
+                    $domain = isset($match[4]) ? $this->unescapeTwigString((string)$match[4]) : '';
+                    if ($domain !== '' && $domain !== 'site') {
+                        continue;
+                    }
+
+                    $key = $this->unescapeTwigString((string)$match[2]);
+                    $key = trim($key);
+                    if ($key === '') {
+                        continue;
+                    }
+                    $keys[$key] = true;
+                }
+            }
+        }
+
+        $keys = array_keys($keys);
+        sort($keys);
+
+        if (empty($keys)) {
+            return [
+                'directories' => $templateDirs,
+                'filesScanned' => $fileCount,
+                'matchesFound' => $matchCount,
+                'keysFound' => 0,
+                'keysAdded' => 0,
+            ];
+        }
+
+        $existingKeys = (new Query())
+            ->select(['key'])
+            ->from(TranslationRecord::tableName())
+            ->where(['key' => $keys])
+            ->column();
+        $existingMap = array_fill_keys(array_map('strval', $existingKeys), true);
+
+        $items = [];
+        foreach ($keys as $key) {
+            if (isset($existingMap[$key])) {
+                continue;
+            }
+            $items[] = [
+                'key' => $key,
+                'group' => $group,
+                'values' => [],
+            ];
+        }
+
+        if (!empty($items)) {
+            $this->saveTranslations($items);
+        }
+
+        return [
+            'directories' => $templateDirs,
+            'filesScanned' => $fileCount,
+            'matchesFound' => $matchCount,
+            'keysFound' => count($keys),
+            'keysAdded' => count($items),
+        ];
+    }
+
     private function getValue(string $key, int $siteId): ?string
     {
         $cacheKey = $siteId . ':' . $key;
@@ -369,6 +466,47 @@ class TranslationsService extends Component
         $this->requestCache[$cacheKey] = $value;
 
         return $value;
+    }
+
+    private function discoverProjectTemplateDirs(): array
+    {
+        $dirs = [];
+
+        $templatesPath = Craft::getAlias('@templates', false);
+        if (is_string($templatesPath) && is_dir($templatesPath)) {
+            $dirs[] = $templatesPath;
+        }
+
+        $rootPath = Craft::getAlias('@root', false);
+        if (is_string($rootPath)) {
+            $modulesPath = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'modules';
+            if (is_dir($modulesPath)) {
+                $iterator = new RecursiveIteratorIterator(
+                    new RecursiveDirectoryIterator($modulesPath, RecursiveDirectoryIterator::SKIP_DOTS),
+                    RecursiveIteratorIterator::SELF_FIRST,
+                );
+                /** @var SplFileInfo $entry */
+                foreach ($iterator as $entry) {
+                    if (!$entry->isDir()) {
+                        continue;
+                    }
+                    if ($entry->getFilename() !== 'templates') {
+                        continue;
+                    }
+                    $dirs[] = $entry->getPathname();
+                }
+            }
+        }
+
+        $dirs = array_values(array_unique($dirs));
+        sort($dirs);
+
+        return $dirs;
+    }
+
+    private function unescapeTwigString(string $value): string
+    {
+        return preg_replace_callback('/\\\\(.)/s', static fn(array $m): string => $m[1], $value) ?? $value;
     }
 
     private function normalizeGroup($group): string

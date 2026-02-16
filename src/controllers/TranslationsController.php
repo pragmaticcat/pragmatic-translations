@@ -518,6 +518,25 @@ class TranslationsController extends Controller
         return $this->redirectToPostedUrl();
     }
 
+    public function actionScanTemplates(): Response
+    {
+        $this->requirePostRequest();
+
+        $request = Craft::$app->getRequest();
+        $group = (string)$request->getBodyParam('group', 'site');
+
+        $result = PragmaticTranslations::$plugin->translations->scanProjectTemplatesForTranslatableKeys($group);
+
+        Craft::$app->getSession()->setNotice(sprintf(
+            'Template scan complete. Scanned %d files, found %d keys, added %d new keys.',
+            (int)$result['filesScanned'],
+            (int)$result['keysFound'],
+            (int)$result['keysAdded'],
+        ));
+
+        return $this->redirectToPostedUrl();
+    }
+
     public function actionAutotranslate(): Response
     {
         $this->requirePostRequest();
