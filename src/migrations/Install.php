@@ -28,6 +28,14 @@ class Install extends Migration
             'uid' => $this->uid(),
         ]);
 
+        $this->createTable('{{%pragmatic_translation_groups}}', [
+            'id' => $this->primaryKey(),
+            'name' => $this->string()->notNull()->unique(),
+            'dateCreated' => $this->dateTime()->notNull(),
+            'dateUpdated' => $this->dateTime()->notNull(),
+            'uid' => $this->uid(),
+        ]);
+
         $this->createIndex(null, '{{%pragmatic_statictranslations}}', ['key'], true);
         $this->createIndex(null, '{{%pragmatic_statictranslation_values}}', ['translationId', 'siteId'], true);
 
@@ -39,6 +47,7 @@ class Install extends Migration
 
     public function safeDown(): bool
     {
+        $this->dropTableIfExists('{{%pragmatic_translation_groups}}');
         $this->dropTableIfExists('{{%pragmatic_statictranslation_values}}');
         $this->dropTableIfExists('{{%pragmatic_statictranslations}}');
 
