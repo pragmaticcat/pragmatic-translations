@@ -11,7 +11,7 @@
 
 {% block content %}
 
-  <div class="flex justify-between align-center" style="margin-top: 12px; gap: 16px; align-items: flex-end;">
+  <div class="flex flex-row justify-between align-center" style="margin-top: 12px; gap: 16px;">
       <div class="flex align-center">
         <form method="get" id="entries-filter" class="flex" style="gap: 12px; align-items: flex-end;">
           <input type="hidden" name="page" value="1">
@@ -51,7 +51,7 @@
         </div>
       </div>
       <div class="flex align-center">
-        <form method="post" enctype="multipart/form-data" accept-charset="UTF-8" style="margin-top: 16px;">
+        <form method="post" enctype="multipart/form-data" accept-charset="UTF-8">
           {{ csrfInput() }}
           {{ actionInput('pragmatic-translations/translations/import') }}
           {{ redirectInput('pragmatic-translations/static', { group: group, q: search, perPage: perPage, page: page, site: selectedSite.handle }) }}
@@ -79,8 +79,6 @@
     {{ csrfInput() }}
     {{ actionInput('pragmatic-translations/translations/save') }}
     {{ redirectInput('pragmatic-translations/static', { group: group, q: search, perPage: perPage, page: page, site: selectedSite.handle }) }}
-
-    
 
     <table class="data fullwidth" id="translations-table" style="margin-top: 16px;">
       <thead>
@@ -138,7 +136,7 @@
 
   </form>
 
-  <div class="flex justify-between align-center" style="margin-top: 16px;">
+  <div class="flex flex-row justify-between align-center" style="margin-top: 16px;">
     <div class="flex align-center">
       <div>{{ total }} {{ "total"|t('pragmatic-translations') }}</div>
       <div class="flex" style="gap: 8px; align-items: center;">
@@ -150,7 +148,7 @@
       </div>
     </div>
     <div class="flex align-center">
-      <div class="btngroup" style="margin-top: 12px;">
+      <div class="btngroup">
         <a class="btn" href="{{ url('pragmatic-translations/export', { format: 'csv', site: selectedSite.handle }) }}">{{ "Export CSV"|t('pragmatic-translations') }}</a>
         <a class="btn" href="{{ url('pragmatic-translations/export', { format: 'json', site: selectedSite.handle }) }}">{{ "Export JSON"|t('pragmatic-translations') }}</a>
         <a class="btn" href="{{ url('pragmatic-translations/export', { format: 'php', site: selectedSite.handle }) }}">{{ "Export PHP"|t('pragmatic-translations') }}</a>
