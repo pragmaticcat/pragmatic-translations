@@ -19,9 +19,7 @@
             {{ actionInput('pragmatic-translations/translations/scan-templates') }}
             {{ redirectInput('pragmatic-translations/static', { group: group, q: search, perPage: perPage, page: page, site: selectedSite.handle }) }}
             <input type="hidden" name="group" value="{{ group }}">
-            <button class="btn" type="submit" title="{{ 'Scan templates for translations'|t('pragmatic-translations') }}" aria-label="{{ 'Scan templates for translations'|t('pragmatic-translations') }}">
-              <span class="icon" data-icon="refresh" aria-hidden="true"></span>
-            </button>
+            <button class="btn" type="submit">{{ 'Scan templates for translations'|t('pragmatic-translations') }}</button>
           </form>
         </div>
         <div class="buttons" style="margin-block:0;">
